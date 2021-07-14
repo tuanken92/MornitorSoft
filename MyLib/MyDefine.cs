@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -264,7 +265,23 @@ namespace MornitorSoft.MyLib
 
     }
 
+    public class Parameter
+    {
+        string folder_path;
+        List<string> list_files_exe;
+        List<SoftManager> list_soft;
 
+        public Parameter()
+        {
+            list_files_exe = new List<string>();
+            list_soft = new List<SoftManager>();
+            folder_path = null;
+        }
+
+        public string Folder_path { get => folder_path; set => folder_path = value; }
+        public List<string> List_files_exe { get => list_files_exe; set => list_files_exe = value; }
+        public List<SoftManager> List_soft { get => list_soft; set => list_soft = value; }
+    }
     public class ColoredItem
     {
         public string Text;
@@ -279,7 +296,7 @@ namespace MornitorSoft.MyLib
 
         public static readonly string pictureDirectory = String.Format($"{workingDirectory}\\Pictures");
 
-        public static readonly string file_config = String.Format($"{workingDirectory}\\Data\\configs\\config_param.json");
+        public static readonly string file_config = String.Format($"{workingDirectory}\\Configs\\config.json");
         public static readonly string file_config_format_data = String.Format($"{workingDirectory}\\Data\\configs\\format_data.json");
         public static readonly string file_config_common_param = String.Format($"{workingDirectory}\\Data\\configs\\common_param.json");
         public static readonly string file_config_filter_window = String.Format($"{workingDirectory}\\Data\\configs\\filter_window.json");
@@ -400,5 +417,70 @@ namespace MornitorSoft.MyLib
             }
             return list_files_filter;
         }
+
+        public static bool File_Is_Exist(string file_name)
+        {
+            return File.Exists(file_name);
+        }
+
+        public static bool CreateFolder(string path_folder)
+        {
+            bool result = Directory.Exists(path_folder);
+            if (!result)
+            {
+                Directory.CreateDirectory(path_folder);
+                result = Directory.Exists(path_folder);
+            }
+            return result;
+        }
+
     }
+
+    public class Storage_Parameter
+    {
+        public static void Save_Parameter(object param)
+        {
+            // serialize JSON directly to a file
+            Console.WriteLine(MyDefine.file_config);
+            using (StreamWriter file = File.CreateText(MyDefine.file_config))
+            {
+                JsonSerializer serializer = new JsonSerializer();
+                serializer.Serialize(file, param);
+            }
+        }
+
+        public static object Load_Parameter(object param)
+        {
+            using (StreamReader file = File.OpenText(MyDefine.file_config))
+            {
+                JsonSerializer serializer = new JsonSerializer();
+                param = serializer.Deserialize(file, param.GetType());
+            }
+            Console.WriteLine(MyDefine.file_config.ToString());
+            return param;
+        }
+
+        public static void Save_Parameter(object param, string file_name)
+        {
+            // serialize JSON directly to a file
+            Console.WriteLine(MyDefine.file_config);
+            using (StreamWriter file = File.CreateText(file_name))
+            {
+                JsonSerializer serializer = new JsonSerializer();
+                serializer.Serialize(file, param);
+            }
+        }
+
+        public static object Load_Parameter(object param, string file_name)
+        {
+            using (StreamReader file = File.OpenText(file_name))
+            {
+                JsonSerializer serializer = new JsonSerializer();
+                param = serializer.Deserialize(file, param.GetType());
+            }
+            Console.WriteLine(MyDefine.file_config.ToString());
+            return param;
+        }
+    }
+
 }

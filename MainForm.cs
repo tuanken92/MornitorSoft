@@ -17,8 +17,7 @@ namespace MornitorSoft
     public partial class MainForm : Form
     {
 
-        List<string> list_files_exe = null;
-        string folder_path = null;
+        Parameter param = null;
 
         string mspaint_path = null;
         SoftManager mspaint = null;
@@ -40,7 +39,11 @@ namespace MornitorSoft
             listBox_Log.DrawMode = DrawMode.OwnerDrawFixed;
             listBox_Log.DrawItem += ListBox_Log_DrawItem;
             //listBox_Log.DataSource = list_files_exe;
-            
+
+
+            listBox_Software.BackColor = Color.Beige;
+            listBox_Software.DataSource = param.List_files_exe;
+
 
         }
 
@@ -48,8 +51,8 @@ namespace MornitorSoft
 
         void Init_Variables()
         {
-            list_files_exe = new List<string>();
-            folder_path = @"C:\Windows\System32";
+            /*param.List_files_exe = new List<string>();
+            param.Folder_path = @"C:\Windows\System32";*/
 
             //list_files_exe = MyDefine.Filter_Software_Type(MyDefine.Get_All_File_In_Folder(folder_path), ".exe", true);
             mspaint_path = @"C:\Windows\System32\cmd.exe";
@@ -60,6 +63,20 @@ namespace MornitorSoft
             list_img.Images.Add(new Bitmap(MyDefine.pictureDirectory + "\\error.ico"));
             list_img.Images.Add(new Bitmap(MyDefine.pictureDirectory + "\\stop.ico"));
             list_img.Images.Add(new Bitmap(MyDefine.pictureDirectory + "\\run.ico"));
+
+
+            if (param == null)
+                param = new Parameter();
+
+            if (MyDefine.File_Is_Exist(MyDefine.file_config))
+            {
+                param = Storage_Parameter.Load_Parameter(param, MyDefine.file_config) as Parameter;
+            }
+            else
+            {
+                MessageBox.Show($"Not found {MyDefine.file_config}");
+            }
+
 
         }
 
@@ -89,21 +106,23 @@ namespace MornitorSoft
                     using (var fbd = new FolderBrowserDialog())
                     {
                         fbd.Description = "Select Folder";
-                        fbd.RootFolder = Environment.SpecialFolder.Windows;
-                        
+                        var x = @"G:/THH";
+
+                        fbd.SelectedPath = x;
                         DialogResult result = fbd.ShowDialog();
 
                         if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
                         {
-                            folder_path = fbd.SelectedPath;
-                            label_folder_path.Text = folder_path;
+                            param.Folder_path = fbd.SelectedPath;
+                            label_folder_path.Text = param.Folder_path;
 
 
-                            list_files_exe = MyDefine.Filter_Software_Type(MyDefine.Get_All_File_In_Folder(folder_path), ".exe", true);
+                            param.List_files_exe = MyDefine.Filter_Software_Type(MyDefine.Get_All_File_In_Folder(param.Folder_path), ".exe", true);
                             Add_Log("----------------------");
-                            foreach (var file_exe in list_files_exe)
+                            foreach (var file_exe in param.List_files_exe)
                             {
                                 Add_Log(file_exe);
+                                param.List_soft.Add(new SoftManager(file_exe, eSoftStatus.Soft_Stop, false));
                             }
                             Add_Log("----------------------");
                         }
@@ -151,6 +170,47 @@ namespace MornitorSoft
                     th.Start();*/
                     break;
 
+                case "btnSaveParam":
+                    //Get_Common_Param();
+                    if (MyDefine.File_Is_Exist(MyDefine.file_config))
+                    {
+                        Storage_Parameter.Save_Parameter(param, MyDefine.file_config);
+                    }
+                    else
+                    {
+                        //create folder
+                        FileInfo fileInfo = new FileInfo(MyDefine.file_config);
+
+                        if (!fileInfo.Exists)
+                            Directory.CreateDirectory(fileInfo.Directory.FullName);
+
+                        //create file
+                        FileStream f = File.Create(MyDefine.file_config);
+                        f.Close();
+                        Console.WriteLine($"Create file {MyDefine.file_config}");
+
+                        //save param to file
+                        Storage_Parameter.Save_Parameter(param, MyDefine.file_config);
+                    }
+                    break;
+                case "btnLoadParam":
+                    //Get_Common_Param();
+                    //Storage_Parameter.Load_Parameter(param, MyDefine.file_config);
+
+                    //config format string
+                    if(param == null)
+                        param = new Parameter();
+
+                    if (MyDefine.File_Is_Exist(MyDefine.file_config))
+                    {
+                        param = Storage_Parameter.Load_Parameter(param, MyDefine.file_config) as Parameter;
+                    }
+                    else
+                    {
+                        MessageBox.Show($"Not found {MyDefine.file_config}");
+                    }
+
+                    break;
 
             }
         }
@@ -202,7 +262,7 @@ namespace MornitorSoft
                 text = DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss") + ":\t" + text;
                 ColoredItem coloredItem = new ColoredItem { Color = color ?? Color.Green, Text = text };
                 if (lb == eListBox.LB_BARCODE)
-                    listBox_Log.Items.Insert(0, coloredItem);
+                    listBox_Software.Items.Insert(0, coloredItem);
                 else if (lb == eListBox.LB_HEARTBEAT)
                     listBox_Log.Items.Insert(0, coloredItem);
             }
@@ -215,6 +275,23 @@ namespace MornitorSoft
         }
 
         private void ListBox_Log_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            
+            if (e.Index < 0)
+                return;
+            var item = ((ListBox)sender).Items[e.Index] as ColoredItem;
+
+            if (item != null)
+            {
+                e.Graphics.DrawString(
+                    item.Text,
+                    e.Font,
+                    new SolidBrush(item.Color),
+                    e.Bounds);
+            }
+        }
+
+        private void ListBox_Software_DrawItem(object sender, DrawItemEventArgs e)
         {
             if (e.Index < 0)
                 return;
@@ -229,5 +306,6 @@ namespace MornitorSoft
                     e.Bounds);
             }
         }
+
     }
 }
